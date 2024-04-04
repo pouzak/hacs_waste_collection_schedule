@@ -1,6 +1,7 @@
-from datetime import datetime
+import datetime
 import requests
-from collection import Collection  # type: ignore[attr-defined]
+from waste_collection_schedule import Collection
+#from collection import Collection
 
 
 TITLE = "Ekonovus"
@@ -29,7 +30,6 @@ ICON_MAP = {
     "Žaliųjų atliekų": "mdi:leaf",
 }
 
-
 class Source:
     API_URL = "https://wabi-west-europe-d-primary-api.analysis.windows.net/public/reports/querydata?synchronous=true"
 
@@ -41,7 +41,7 @@ class Source:
         self._region = region
         self._district = district
         self._street = street
-        self._house_number = house_number
+        self._house_number = str(house_number)
         self._waste_object_ids = waste_object_ids
         self._valid_waste_object_ids = []
         self._powerbi_resource_key = powerbi_resource_key if powerbi_resource_key != None else "d86dc3d4-e915-4460-b12e-c925d3ae6c75"
@@ -79,9 +79,10 @@ class Source:
             self.check_for_error_status(data)
             date_arr = data['results'][0]['result']['data']['dsr']['DS'][0]['PH'][0]['DM0'][0]['M0'].replace(".","").split(",")
             for date in date_arr:
+                split = date.split('-')
                 entries.append(
                     Collection(
-                        date=datetime.strptime(date.strip()+ 'T00:00:00', "%Y-%m-%dT%H:%M:%S").date(),
+                        date=datetime.datetime(int(split[0]), int(split[1]), int(split[2])).date(),
                         t=type,
                         icon=ICON_MAP.get(type),
                     )
@@ -929,4 +930,3 @@ class Source:
                 "cancelQueries": [],
                 "modelId": 1026609
             }
-
