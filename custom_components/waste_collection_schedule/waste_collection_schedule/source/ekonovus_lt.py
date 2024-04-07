@@ -1,7 +1,7 @@
 import datetime
 import requests
-from waste_collection_schedule import Collection
-#from collection import Collection
+from waste_collection_schedule import Collection 
+import json
 
 
 TITLE = "Ekonovus"
@@ -55,34 +55,32 @@ class Source:
             headers=headers
         )
 
-        data = r.json()
+        data = json.loads(r.text)
         self.check_for_error_status(data)
 
-        for i in data['results'][0]['result']['data']['dsr']['DS'][0]['PH'][0]['DM0']:
-            if len(self._waste_object_ids) == 0:
-                self._valid_waste_object_ids.append(i['G0'])
-            else:
-                id = i['G0'].split(" ")[0]
-                if id in self._waste_object_ids:
-                    self._valid_waste_object_ids.append(i['G0'])
-
         entries = []
-        for collection in self._valid_waste_object_ids:
+
+        for i in data['results'][0]['result']['data']['dsr']['DS'][0]['PH'][0]['DM0']:
+            collection = i['G0']
+            if len(self._waste_object_ids) > 0:
+                id = collection.split(" ")[0]
+                if id not in self._waste_object_ids:
+                    continue
+                
             type =  collection[collection.find("(")+1:collection.find(")")]
-            id = collection.split(" ")[0]
             r = requests.post(
                 self.API_URL,
                 json=self.get_waste_object_data(collection),
                 headers=headers
             )
-            data = r.json()
+            data = json.loads(r.text)
             self.check_for_error_status(data)
             date_arr = data['results'][0]['result']['data']['dsr']['DS'][0]['PH'][0]['DM0'][0]['M0'].replace(".","").split(",")
             for date in date_arr:
                 split = date.split('-')
                 entries.append(
                     Collection(
-                        date=datetime.datetime(int(split[0]), int(split[1]), int(split[2])).date(),
+                        date=datetime.date(int(split[0]), int(split[1]), int(split[2])),
                         t=type,
                         icon=ICON_MAP.get(type),
                     )
@@ -597,7 +595,6 @@ class Source:
                                                                 [
                                                                     {
                                                                         "Literal": {
-                                                                            # "Value": "'Radikių k. Lėtos g. 13'"
                                                                             "Value": f"'{self._district} {self._street} {self._house_number}'"
                                                                         }
                                                                     }
@@ -626,7 +623,6 @@ class Source:
                                                                     {
                                                                         "Literal": {
                                                                              "Value":f"'{self._region}'"
-                                                                            # # "Value": "'Kauno r. sav.'"
                                                                         }
                                                                     }
                                                                 ]
@@ -930,3 +926,4 @@ class Source:
                 "cancelQueries": [],
                 "modelId": 1026609
             }
+
